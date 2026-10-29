@@ -1,59 +1,133 @@
 # HttpInterceptors
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.2.1.
+Demostración pedagógica de los interceptores HTTP de Angular y de su uso con un backend que utiliza autenticación JWT.
 
-## Development server
+El proyecto muestra dos interceptores funcionales:
 
-To start a local development server, run:
+- **Interceptor de autenticación:** añade el token JWT recibido por el login al header `Authorization` de las solicitudes protegidas. Las solicitudes de autenticación se excluyen.
+- **Interceptor de demostración:** agrega una demora de un segundo a las solicitudes que comienzan con `/api/`, útil para observar visualmente el estado de carga y el comportamiento de las peticiones HTTP.
 
-```bash
-ng serve
-```
+El objetivo es aprender a configurar interceptores, centralizar el manejo de headers HTTP, manipular solicitudes y encadenar comportamientos mediante Angular.
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+> Este proyecto es una demostración con fines educativos. No debe utilizarse como implementación definitiva de seguridad o almacenamiento de tokens en producción.
 
-## Code scaffolding
+## Tecnologías
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+- Angular 22
+- TypeScript
+- Angular Signals
+- RxJS
+- Vitest
+- Nginx
+- Docker Compose
 
-```bash
-ng generate component component-name
-```
+## Comunicación con el backend
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+El frontend utiliza rutas relativas `/api/...`; no llama directamente a `http://localhost:8081`.
 
-```bash
-ng generate --help
-```
+- En desarrollo, Angular CLI utiliza `proxy.conf.json` para reenviar `/api` al backend local.
+- Con Docker, Nginx reenviar `/api` al servicio `backend` dentro de la red de contenedores.
 
-## Building
+Esta configuración evita que el navegador tenga que realizar llamadas cross-origin entre el frontend y el backend mediante CORS.
 
-To build the project run:
+## Requisitos
 
-```bash
-ng build
-```
+- Node.js 22 o superior
+- npm
+- Docker y Docker Compose
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+## Ejecución en desarrollo
 
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
+Desde esta carpeta, instala las dependencias:
 
 ```bash
-ng e2e
+npm install
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+El backend debe estar disponible en el puerto `8081`. Luego inicia Angular:
 
-## Additional Resources
+```bash
+npm start
+```
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+Abre `http://localhost:4200`.
+
+La configuración de proxy está definida en `proxy.conf.json`:
+
+```json
+{
+  "/api": {
+    "target": "http://localhost:8081",
+    "secure": false,
+    "changeOrigin": true
+  }
+}
+```
+
+## Ejecución con Docker
+
+Desde la raíz del proyecto, prepara las variables de entorno:
+
+```bash
+cp .env.example .env
+```
+
+Edita `.env` y reemplaza las claves de ejemplo, especialmente las credenciales de PostgreSQL y el secreto JWT. Después inicia los servicios:
+
+```bash
+docker compose up --build
+```
+
+Abre `http://localhost`.
+
+Nginx recibe las solicitudes del frontend y reenvía las rutas `/api/...` al contenedor `backend`.
+
+## Compilación
+
+Genera la versión optimizada:
+
+```bash
+npm run build
+```
+
+Los archivos resultantes se guardan en `dist/HttpInterceptors/browser`.
+
+## Pruebas
+
+Ejecuta las pruebas unitarias con:
+
+```bash
+npm test
+```
+
+Las pruebas utilizan el ejecutor Vitest integrado con Angular CLI.
+
+## Interceptores
+
+La configuración se encuentra en `src/app/app.config.ts` mediante:
+
+```ts
+provideHttpClient(withInterceptors([
+  delayInterceptor,
+  authInterceptor,
+]));
+```
+
+Los archivos principales son:
+
+- `src/app/dev/delay.interceptor.ts`
+- `src/app/auth/data-access/auth.interceptor.ts`
+- `src/app/auth/data-access/auth.service.ts`
+
+Cada interceptor recibe una `HttpRequest`, puede modificarla y debe continuar la cadena llamando a `next(req)` o, si corresponde, devolver una nueva solicitud creada con `req.clone(...)`.
+
+## Flujo de autenticación
+
+1. El usuario introduce sus credenciales en el formulario de login.
+2. `AuthService` realiza la solicitud `POST` relativa a `/api/v1/auth/login`.
+3. El backend responde con los tokens de acceso y actualización.
+4. `AuthService` guarda los datos de sesión en `localStorage`.
+5. El interceptor de autenticación agrega el header `Authorization: Bearer <token>` a las solicitudes posteriores a `/api/...`, excluyendo las rutas de autenticación.
+6. El interceptor de demora aplica la espera simulada a las solicitudes API.
+
+Esta separación permite observar cómo Angular centraliza el comportamiento común de las solicitudes HTTP sin repetir headers o lógica en cada servicio.
