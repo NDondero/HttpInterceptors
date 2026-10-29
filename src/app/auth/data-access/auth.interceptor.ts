@@ -4,12 +4,15 @@ import { AuthService } from './auth.service';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
-  if (req.url.includes('http://localhost:8081') && !req.url.includes('auth')) {
+  const accessToken = auth.accessToken();
+
+  if (req.url.startsWith('/api/') && !req.url.includes('/auth/') && accessToken) {
     return next(
       req.clone({
-        setHeaders: { Authorization: `Bearer ${auth.accessToken()}` },
+        setHeaders: { Authorization: `Bearer ${accessToken}` },
       }),
     );
   }
+
   return next(req);
 };

@@ -6,8 +6,7 @@ import { firstValueFrom } from 'rxjs';
 @Service()
 export class AuthService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = 'http://localhost:8081';
-  private readonly authEndpoint = this.baseUrl + '/api/v1/auth';
+  private readonly authEndpoint = '/api/v1/auth';
 
   private readonly accessTokenKey = 'accessToken';
   private readonly refreshTokenKey = 'refreshToken';
