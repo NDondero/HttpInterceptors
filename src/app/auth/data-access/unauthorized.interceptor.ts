@@ -5,6 +5,9 @@ import { catchError, throwError } from 'rxjs';
 import { AuthService } from './auth.service';
 
 export const unauthorizedInterceptor: HttpInterceptorFn = (req, next) => {
+  if (req.url.includes('/auth')) {
+    return next(req);
+  }
   const router = inject(Router);
   const auth = inject(AuthService);
   return next(req).pipe(

@@ -3,6 +3,7 @@ import { AuthService } from '../../data-access/auth.service';
 import { LoginCredentials } from '../../data-access/auth.model';
 import { form, FormField, FormRoot, required } from '@angular/forms/signals';
 import { Router } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 
 @Component({
   imports: [FormField, FormRoot],
@@ -14,7 +15,6 @@ export default class Login {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 
-  protected readonly errorMsg = signal('');
   readonly reason = input<string>('');
 
   private readonly emptyCredentials: LoginCredentials = {
@@ -33,14 +33,9 @@ export default class Login {
     {
       submission: {
         action: async (field) => {
-          try {
-            this.errorMsg.set('');
-            const credentials = field().value();
-            await this.auth.login(credentials);
-            this.router.navigate(['/home']);
-          } catch (error) {
-            this.errorMsg.set(`${error}`);
-          }
+          const credentials = field().value();
+          await firstValueFrom(this.auth.login(credentials));
+          this.router.navigate(['/home']);
         },
         onInvalid: (field) => {
           field().errorSummary()[0].fieldTree().focusBoundControl();

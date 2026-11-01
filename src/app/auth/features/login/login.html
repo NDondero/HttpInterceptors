@@ -12,10 +12,6 @@
     <input id="password" type="password" autocomplete="current-password" [formField]="credentialForm.password">
   </div>
 
-  @if (errorMsg()) {
-    <p role="alert">{{ errorMsg() }}</p>
-  }
-
   <button type="submit" [disabled]="credentialForm().submitting()">
     @if (credentialForm().submitting()) {
       Iniciando sesión...
