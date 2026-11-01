@@ -1,9 +1,9 @@
-import { Component, effect, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { AuthService } from './auth/data-access/auth.service';
-import { Login } from './auth/features/login/login';
+import { RouterLink, RouterOutlet } from '@angular/router';
 
 @Component({
-  imports: [Login],
+  imports: [RouterOutlet, RouterLink],
   selector: 'app-root',
   styleUrl: './app.css',
   templateUrl: './app.html',
@@ -11,21 +11,4 @@ import { Login } from './auth/features/login/login';
 export class App {
   protected readonly title = signal('HttpInterceptors');
   protected readonly auth = inject(AuthService);
-  protected readonly loginVisible = signal(false);
-
-  constructor() {
-    effect(() => {
-      if (this.auth.isAuthenticated()) {
-        this.loginVisible.set(false);
-      }
-    });
-  }
-
-  protected openLogin() {
-    this.loginVisible.set(true);
-  }
-
-  protected logout() {
-    this.auth.logout();
-  }
 }

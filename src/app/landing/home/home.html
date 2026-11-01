@@ -1,0 +1,11 @@
+@if (auth.isAuthenticated()) {
+  <h1>Sesión iniciada</h1>
+  <button type="button" (click)="auth.logout()">Cerrar sesión</button>
+
+  <p>Cantidad de veces consultadas al backend: {{ timesQueried() }}</p>
+  @if (me(); as me) {
+    <pre>{{ me | json }}</pre>
+  }
+} @else {
+  <p>Sesión no iniciada!</p>
+}

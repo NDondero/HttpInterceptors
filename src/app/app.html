@@ -1,13 +1,12 @@
+<header>
+  <nav>
+  <a [routerLink]="['/home']">{{ title() }}</a>
+    @if (!auth.isAuthenticated()) {
+      <a [routerLink]="['/login']">Iniciar sesión</a>
+    }
+  </nav>
+</header>
 
 <main>
-  @if (auth.isAuthenticated()) {
-    <h1>Sesión iniciada</h1>
-    <button type="button" (click)="logout()">Cerrar sesión</button>
-  } @else {
-    <button type="button" (click)="openLogin()">Abrir login</button>
-
-    @if (loginVisible()) {
-      <app-login></app-login>
-    }
-  }
+  <router-outlet></router-outlet>
 </main>

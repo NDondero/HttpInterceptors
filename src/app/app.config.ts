@@ -1,14 +1,17 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { routes } from './app.routes';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { delayInterceptor } from './dev/delay.interceptor';
-import { authInterceptor } from './auth/data-access/auth.interceptor';
+import { authorizationInterceptor } from './auth/data-access/authorization.interceptor';
+import { unauthorizedInterceptor } from './auth/data-access/unauthorized.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
-    provideRouter(routes),
-    provideHttpClient(withInterceptors([delayInterceptor, authInterceptor])),
+    provideRouter(routes, withComponentInputBinding()),
+    provideHttpClient(
+      withInterceptors([delayInterceptor, authorizationInterceptor, unauthorizedInterceptor]),
+    ),
   ],
 };
