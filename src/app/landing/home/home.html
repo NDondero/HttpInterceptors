@@ -6,6 +6,9 @@
   @if (me(); as me) {
     <pre>{{ me | json }}</pre>
   }
+  @if (auth.refreshing()) {
+    <p>Refrescando sesión automáticamente...</p>
+  }
 } @else {
   <p>Sesión no iniciada!</p>
 }

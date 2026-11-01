@@ -1,4 +1,4 @@
-import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { Component, DestroyRef, effect, inject, signal } from '@angular/core';
 import { AuthService } from '../../auth/data-access/auth.service';
 import { UserService } from '../../users/data-access/user.service';
 import { JsonPipe } from '@angular/common';
@@ -18,9 +18,22 @@ export default class Home {
 
   private readonly destroyRef = inject(DestroyRef);
 
+  private intervalId: number | null = null;
+
   constructor() {
-    const intervalId = setInterval(() => this.updateMe(), 1000);
-    this.destroyRef.onDestroy(() => clearInterval(intervalId));
+    effect(() => {
+      if (this.auth.refreshing() && this.intervalId) {
+        clearInterval(this.intervalId);
+        this.intervalId = null;
+      } else {
+        this.intervalId = setInterval(() => this.updateMe(), 1000);
+      }
+    });
+    this.destroyRef.onDestroy(() => {
+      if (this.intervalId) {
+        clearInterval(this.intervalId);
+      }
+    });
   }
 
   private async updateMe() {
