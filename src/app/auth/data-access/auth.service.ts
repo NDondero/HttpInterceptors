@@ -1,7 +1,7 @@
 import { computed, inject, Service, signal } from '@angular/core';
 import { AuthResponse, LoginCredentials } from './auth.model';
 import { HttpClient } from '@angular/common/http';
-import { finalize, tap, throwError } from 'rxjs';
+import { finalize, Observable, shareReplay, tap, throwError } from 'rxjs';
 
 @Service()
 export class AuthService {
@@ -19,6 +19,7 @@ export class AuthService {
 
   private readonly _refreshing = signal(false);
   readonly refreshing = this._refreshing.asReadonly();
+  private refreshInFlight: Observable<AuthResponse> | null = null;
 
   login(credentials: LoginCredentials) {
     return this.http.post<AuthResponse>(this.authEndpoint + '/login', credentials).pipe(
@@ -40,15 +41,23 @@ export class AuthService {
     if (!refreshToken) {
       return throwError(() => new Error('No hay token guardado para intentar refrescar la sesión'));
     }
+    if (this.refreshInFlight) {
+      return this.refreshInFlight;
+    }
     this._refreshing.set(true);
-    return this.http.post<AuthResponse>(this.authEndpoint + '/refresh', { refreshToken }).pipe(
-      tap((tokens) => {
-        this.saveTokens(tokens);
-      }),
-      finalize(() => {
-        this._refreshing.set(false);
-      }),
-    );
+    this.refreshInFlight = this.http
+      .post<AuthResponse>(this.authEndpoint + '/refresh', { refreshToken })
+      .pipe(
+        tap((tokens) => {
+          this.saveTokens(tokens);
+        }),
+        finalize(() => {
+          this._refreshing.set(false);
+          this.refreshInFlight = null;
+        }),
+        shareReplay({ bufferSize: 1, refCount: true }),
+      );
+    return this.refreshInFlight;
   }
 
   private saveTokens(tokens: AuthResponse) {
