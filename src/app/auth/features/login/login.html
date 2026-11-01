@@ -1,15 +1,29 @@
 @if (reason(); as r) {
   <p>{{ r }}</p>
 }
+@if (erroMsg(); as e) {
+  <p>{{ e }}</p>
+}
+
 <form [formRoot]="credentialForm">
   <div>
     <label for="username">Usuario</label>
-    <input id="username" type="text" autocomplete="username" [formField]="credentialForm.username">
+    <input
+      id="username"
+      type="text"
+      autocomplete="username"
+      [formField]="credentialForm.username"
+    />
   </div>
 
   <div>
     <label for="password">Contraseña</label>
-    <input id="password" type="password" autocomplete="current-password" [formField]="credentialForm.password">
+    <input
+      id="password"
+      type="password"
+      autocomplete="current-password"
+      [formField]="credentialForm.password"
+    />
   </div>
 
   <button type="submit" [disabled]="credentialForm().submitting()">

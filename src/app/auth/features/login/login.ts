@@ -4,6 +4,7 @@ import { LoginCredentials } from '../../data-access/auth.model';
 import { form, FormField, FormRoot, required } from '@angular/forms/signals';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
+import { HttpErrorResponse, HttpStatusCode } from '@angular/common/http';
 
 @Component({
   imports: [FormField, FormRoot],
@@ -16,6 +17,7 @@ export default class Login {
   private readonly router = inject(Router);
 
   readonly reason = input<string>('');
+  protected readonly erroMsg = signal('');
 
   private readonly emptyCredentials: LoginCredentials = {
     username: '',
@@ -33,9 +35,20 @@ export default class Login {
     {
       submission: {
         action: async (field) => {
-          const credentials = field().value();
-          await firstValueFrom(this.auth.login(credentials));
-          this.router.navigate(['/home']);
+          try {
+            this.erroMsg.set('');
+            const credentials = field().value();
+            await firstValueFrom(this.auth.login(credentials));
+            this.router.navigate(['/home']);
+          } catch (error) {
+            if (
+              error instanceof HttpErrorResponse &&
+              error.status === HttpStatusCode.Unauthorized
+            ) {
+              this.erroMsg.set('Credenciales inválidas');
+            }
+            throw error;
+          }
         },
         onInvalid: (field) => {
           field().errorSummary()[0].fieldTree().focusBoundControl();
