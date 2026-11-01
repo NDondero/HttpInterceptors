@@ -3,15 +3,14 @@ import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { routes } from './app.routes';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { delayInterceptor } from './dev/delay.interceptor';
-import { authorizationInterceptor } from './auth/data-access/authorization.interceptor';
-import { unauthorizedInterceptor } from './auth/data-access/unauthorized.interceptor';
+import { authInterceptor } from './auth/data-access/auth.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes, withComponentInputBinding()),
     provideHttpClient(
-      withInterceptors([delayInterceptor, authorizationInterceptor, unauthorizedInterceptor]),
+      withInterceptors([delayInterceptor, authInterceptor]),
     ),
   ],
 };
