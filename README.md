@@ -1,15 +1,19 @@
 # HttpInterceptors
 
-Demostración pedagógica de los interceptores HTTP de Angular y de su uso con un backend que utiliza autenticación JWT.
+Demostración pedagógica de interceptores HTTP funcionales en Angular y de su uso con autenticación JWT.
 
-El proyecto muestra dos interceptores funcionales:
+La aplicación muestra dos interceptores:
 
-- **Interceptor de autenticación:** añade el token JWT recibido por el login al header `Authorization` de las solicitudes protegidas. Las solicitudes de autenticación se excluyen.
-- **Interceptor de demostración:** agrega una demora de un segundo a las solicitudes que comienzan con `/api/`, útil para observar visualmente el estado de carga y el comportamiento de las peticiones HTTP.
+- **Interceptor de autenticación:** añade el access token al header `Authorization` de las solicitudes API protegidas. Las solicitudes de autenticación se excluyen.
+- **Interceptor de demora:** agrega una espera de 500 ms a las solicitudes que comienzan con `/api/`, útil para observar visualmente el estado de carga y encadenar comportamientos HTTP.
 
-El objetivo es aprender a configurar interceptores, centralizar el manejo de headers HTTP, manipular solicitudes y encadenar comportamientos mediante Angular.
+Además, la aplicación muestra un flujo básico de sesión:
 
-> Este proyecto es una demostración con fines educativos. No debe utilizarse como implementación definitiva de seguridad o almacenamiento de tokens en producción.
+- guarda el access token y el refresh token en `localStorage`;
+- expone el estado de autenticación mediante Angular Signals;
+- ante un `401`, elimina la sesión y redirige al formulario de login.
+
+> Este proyecto es una demostración educativa. No implementa renovación automática de tokens ni debe considerarse una solución completa de seguridad o almacenamiento de tokens para producción.
 
 ## Tecnologías
 
@@ -26,9 +30,9 @@ El objetivo es aprender a configurar interceptores, centralizar el manejo de hea
 El frontend utiliza rutas relativas `/api/...`; no llama directamente a `http://localhost:8081`.
 
 - En desarrollo, Angular CLI utiliza `proxy.conf.json` para reenviar `/api` al backend local.
-- Con Docker, Nginx reenviar `/api` al servicio `backend` dentro de la red de contenedores.
+- Con Docker, Nginx reenvía `/api` al servicio `backend` dentro de la red de contenedores.
 
-Esta configuración evita que el navegador tenga que realizar llamadas cross-origin entre el frontend y el backend mediante CORS.
+Esta configuración evita llamadas cross-origin entre el navegador, Angular CLI y el backend.
 
 ## Requisitos
 
@@ -38,7 +42,7 @@ Esta configuración evita que el navegador tenga que realizar llamadas cross-ori
 
 ## Ejecución en desarrollo
 
-Desde esta carpeta, instala las dependencias:
+Instala las dependencias:
 
 ```bash
 npm install
@@ -80,7 +84,7 @@ docker compose up --build
 
 Abre `http://localhost`.
 
-Nginx recibe las solicitudes del frontend y reenvía las rutas `/api/...` al contenedor `backend`.
+Nginx recibe las solicitudes del frontend y las reenvía a `/api/...` dentro de la red Docker.
 
 ## Compilación
 
@@ -100,34 +104,44 @@ Ejecuta las pruebas unitarias con:
 npm test
 ```
 
-Las pruebas utilizan el ejecutor Vitest integrado con Angular CLI.
+Las pruebas utilizan el ejecutor Vitest integrado con Angular CLI. Actualmente cubren la creación básica de componentes, servicios, rutas e interceptores. Los casos de HTTP pueden ampliarse para verificar cabeceras, respuestas `401`, renovación y concurrencia si se incorpora esa funcionalidad.
 
 ## Interceptores
 
 La configuración se encuentra en `src/app/app.config.ts` mediante:
 
 ```ts
-provideHttpClient(withInterceptors([
-  delayInterceptor,
-  authInterceptor,
-]));
+provideHttpClient(
+  withInterceptors([
+    delayInterceptor,
+    authInterceptor,
+  ]),
+);
 ```
 
 Los archivos principales son:
 
-- `src/app/dev/delay.interceptor.ts`
-- `src/app/auth/data-access/auth.interceptor.ts`
-- `src/app/auth/data-access/auth.service.ts`
+- `src/app/dev/delay.interceptor.ts`: agrega la demora de demostración.
+- `src/app/auth/data-access/auth.interceptor.ts`: añade el access token y maneja respuestas `401`.
+- `src/app/auth/data-access/auth.service.ts`: administra login, logout, tokens y estado reactivo.
+- `src/app/auth/data-access/auth.model.ts`: define las credenciales y la respuesta de autenticación.
 
-Cada interceptor recibe una `HttpRequest`, puede modificarla y debe continuar la cadena llamando a `next(req)` o, si corresponde, devolver una nueva solicitud creada con `req.clone(...)`.
+Cada interceptor recibe una `HttpRequest`, puede inspeccionarla o clonarla y continúa la cadena llamando a `next(req)`. Los objetos de solicitud son inmutables, por lo que los cambios se realizan mediante `req.clone(...)`.
 
-## Flujo de autenticación
+## Flujo de autenticación actual
 
 1. El usuario introduce sus credenciales en el formulario de login.
-2. `AuthService` realiza la solicitud `POST` relativa a `/api/v1/auth/login`.
-3. El backend responde con los tokens de acceso y actualización.
-4. `AuthService` guarda los datos de sesión en `localStorage`.
-5. El interceptor de autenticación agrega el header `Authorization: Bearer <token>` a las solicitudes posteriores a `/api/...`, excluyendo las rutas de autenticación.
-6. El interceptor de demora aplica la espera simulada a las solicitudes API.
+2. `AuthService` realiza `POST /api/v1/auth/login`.
+3. El backend responde con un access token y un refresh token.
+4. `AuthService` guarda ambos tokens en `localStorage` y actualiza los signals internos.
+5. El interceptor excluye las solicitudes cuyo destino contiene `/auth`.
+6. Para las solicitudes protegidas que comienzan con `/api`, el interceptor agrega:
 
-Esta separación permite observar cómo Angular centraliza el comportamiento común de las solicitudes HTTP sin repetir headers o lógica en cada servicio.
+   ```text
+   Authorization: Bearer <access-token>
+   ```
+
+7. El interceptor de demora aplica una espera de 500 ms a las solicitudes API.
+8. Si una solicitud protegida devuelve `401`, el interceptor ejecuta `logout()`, elimina ambos tokens y navega a `/login` con una razón de expiración.
+
+El commit actual **no intenta refrescar la sesión ni reintenta automáticamente la solicitud original**. La renovación del access token constituye una evolución pendiente que debería implementarse junto con pruebas de concurrencia, cancelación y manejo de errores.
